@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  trading-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-bot
+    env_file:
+      - .env
+    volumes:
+      - .:/app  # optional: bind-mount für lokalen Code, nützlich für Entwicklung
+    command: python -m alpaca_trading_bot.main
+    restart: unless-stopped

@@ -1,1 +1,5 @@
 .env
+.venv/
+
+src/__pycache__/
+src/alpaca_trading_bot.egg-info/
