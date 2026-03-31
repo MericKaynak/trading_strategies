@@ -18,7 +18,8 @@ dependencies = [
     "schedule>=1.2.0", # NEU für das tägliche Ausführen
     "pytz>=2023.3",     # NEU für CET Zeitzone
     "pydantic>=2.12.5",
-    "python-dotenv>=1.0.0"
+    "python-dotenv>=1.0.0",
+    "plotly>=5.0.0"
 ]
 
 [build-system]

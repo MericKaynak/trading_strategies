@@ -1,35 +1,77 @@
 import os
-import time
-import schedule
-import pytz
-from src.strategy import run_regression_strategy
-from src.config import AMDConfig
+import sys
+from datetime import datetime
+from alpaca.trading.client import TradingClient
+from src.strategy import run_strategy
+from src.config import AMDConfig, MUConfig
 from dotenv import load_dotenv
-# Konfiguration aus Umgebungsvariablen laden
 
 load_dotenv()
 API_KEY = os.getenv("KEY")
 API_SECRET = os.getenv("SECRET")
 
-amd_settings = AMDConfig(API_KEY=API_KEY, API_SECRET=API_SECRET)
+# ==========================================
+# ALLE STRATEGIEN / SYMBOLE HIER DEFINIEREN
+# Reihenfolge = Priorität (erste wird zuerst geprüft)
+# ==========================================
+STRATEGIES = [
+    AMDConfig(API_KEY=API_KEY, API_SECRET=API_SECRET),
+    MUConfig(API_KEY=API_KEY, API_SECRET=API_SECRET),
+]
+
 
 def job():
-    # Wir übergeben das gesamte Pydantic-Objekt
-    run_regression_strategy(amd_settings)
+    """
+    Geht durch alle Strategien der Reihe nach:
+    1. Stop-Loss + Verkaufs-Checks für ALLE Symbole
+    2. Kauf-Check: Kauft beim ERSTEN Symbol mit Kaufsignal
+       (nur wenn kein Geld bereits investiert ist)
+    """
+    print(f"\n{'='*50}")
+    print(f"[{datetime.now()}] Trading Bot Run")
+    print(f"{'='*50}")
 
-# Scheduling
-timezone = pytz.timezone("Europe/Berlin")
-schedule.every().day.at("18:00").do(job)
+    try:
+        client = TradingClient(API_KEY, API_SECRET, paper=STRATEGIES[0].PAPER)
+        account = client.get_account()
+        equity = float(account.equity)
+        buying_power = float(account.buying_power)
+        positions = client.get_all_positions()
 
+        held_symbols = {p.symbol: float(p.qty) for p in positions}
+        print(f"  Equity: ${equity:,.2f} | Buying Power: ${buying_power:,.2f}")
+        print(f"  Positionen: {held_symbols if held_symbols else 'keine'}")
+        print(f"  Strategien: {[c.SYMBOL for c in STRATEGIES]}")
+
+        for config in STRATEGIES:
+            result = run_strategy(client, config, positions, equity, buying_power)
+
+            if result in ("sold", "stop"):
+                account = client.get_account()
+                equity = float(account.equity)
+                buying_power = float(account.buying_power)
+                positions = client.get_all_positions()
+
+            if result == "bought":
+                print(f"\n  ✅ {config.SYMBOL} gekauft → Rest überspringen.")
+                break
+
+        print(f"\n{'='*50}")
+        print(f"  Run abgeschlossen.")
+        print(f"{'='*50}")
+
+    except Exception as e:
+        print(f"❌ FEHLER: {e}")
+
+
+# Startup Info
 print(f"--- BOT GESTARTET ---")
-print(f"Symbol: {amd_settings.SYMBOL}")
-print(f"Hebel:  {amd_settings.LEVERAGE}")
-print(f"Modus:  {'PAPER' if amd_settings.PAPER else 'LIVE'}")
-print(f"Nächster Check: Täglich 18:00 CET")
+print(f"Strategien:")
+for cfg in STRATEGIES:
+    print(f"  • {cfg.SYMBOL}: {cfg.LEVERAGE}x Hebel | Stop-Loss: {cfg.STOP_LOSS*100:.0f}% | "
+          f"Buy: -{cfg.BUY_DEVIATION*100:.0f}% | Sell: +{cfg.SELL_DEVIATION*100:.0f}%")
+print(f"Modus: {'PAPER' if STRATEGIES[0].PAPER else 'LIVE'}")
 
-# Falls du beim Starten sofort testen willst:
-# job()
-
-while True:
-    schedule.run_pending()
-    time.sleep(60)
+# Direkt ausführen — Scheduling läuft über Jenkins Pipeline
+job()
+print("--- BOT BEENDET ---")
