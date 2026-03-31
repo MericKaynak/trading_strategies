@@ -3,7 +3,7 @@ pipeline {
 
     triggers {
         // Mo-Fr um 18:00 CET: Trading Bot ausführen
-        cron('0 18 * * 1-5')
+        cron('25 18 * * 1-5')
         // Bei Push: Neu bauen (Webhook in GitHub konfigurieren)
         pollSCM('')
     }
@@ -23,9 +23,6 @@ pipeline {
         }
 
         stage('Run Trading Bot') {
-            when {
-                triggeredBy 'TimerTrigger'
-            }
             steps {
                 sh '''
                     docker compose run --rm \
