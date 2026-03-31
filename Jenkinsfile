@@ -4,13 +4,13 @@ pipeline {
     triggers {
         // Mo-Fr um 18:00 CET: Trading Bot ausführen
         cron('0 18 * * 1-5')
-        // Bei Push auf main/production: Neu bauen
-        // Voraussetzung: Webhook in GitHub/GitLab auf Jenkins URL konfigurieren
-        // GitHub: Settings → Webhooks → http://<jenkins-url>/github-webhook/
-        pollSCM('')  // Aktiviert Webhook-Listener
+        // Bei Push: Neu bauen (Webhook in GitHub konfigurieren)
+        pollSCM('')
     }
 
     environment {
+        // In Jenkins anlegen: Manage Jenkins → Credentials → Add Credentials
+        // Kind: "Secret text", ID: "ALPACA_API_KEY" / "ALPACA_API_SECRET"
         KEY      = credentials('ALPACA_API_KEY')
         SECRET   = credentials('ALPACA_API_SECRET')
     }
@@ -23,7 +23,6 @@ pipeline {
         }
 
         stage('Run Trading Bot') {
-            // Nur beim Cron-Trigger ausführen, nicht beim Push
             when {
                 triggeredBy 'TimerTrigger'
             }
@@ -37,6 +36,12 @@ pipeline {
                 '''
             }
         }
+
+        stage('Cleanup') {
+            steps {
+                sh 'docker compose down || true'
+            }
+        }
     }
 
     post {
@@ -45,9 +50,6 @@ pipeline {
         }
         success {
             echo '✅ Erfolgreich.'
-        }
-        always {
-            sh 'docker compose down || true'
         }
     }
 }
