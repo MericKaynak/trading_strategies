@@ -1,9 +1,11 @@
 import os
 import sys
+import io
 from datetime import datetime
 from alpaca.trading.client import TradingClient
 from src.strategy import run_strategy
 from src.config import AMDConfig, MUConfig
+from src import telegram_notify as tg
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -65,7 +67,25 @@ def job():
         print(f"❌ FEHLER: {e}")
 
 
-# Startup Info
+class _Tee:
+    """Schreibt gleichzeitig in echtes stdout und in einen Buffer."""
+    def __init__(self, real, buf):
+        self._real = real
+        self._buf = buf
+
+    def write(self, text):
+        self._real.write(text)
+        self._buf.write(text)
+
+    def flush(self):
+        self._real.flush()
+        self._buf.flush()
+
+
+# --- Ausführung ---
+_buf = io.StringIO()
+sys.stdout = _Tee(sys.__stdout__, _buf)
+
 print(f"--- BOT GESTARTET ---")
 print(f"Strategien:")
 for cfg in STRATEGIES:
@@ -73,6 +93,8 @@ for cfg in STRATEGIES:
           f"Buy: -{cfg.BUY_DEVIATION*100:.0f}% | Sell: +{cfg.SELL_DEVIATION*100:.0f}%")
 print(f"Modus: {'PAPER' if IS_PAPER else 'LIVE'}")
 
-# Direkt ausführen — Scheduling läuft über Jenkins Pipeline
 job()
 print("--- BOT BEENDET ---")
+
+sys.stdout = sys.__stdout__
+tg.send(_buf.getvalue())

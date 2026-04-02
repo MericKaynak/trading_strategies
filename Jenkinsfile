@@ -13,6 +13,8 @@ pipeline {
         // Kind: "Secret text", ID: "ALPACA_API_KEY_PAPER" / "ALPACA_API_SECRET_PAPER"
         KEY    = credentials('ALPACA_API_KEY_PAPER')
         SECRET = credentials('ALPACA_API_SECRET_PAPER')
+        TELEGRAM_BOT_TOKEN = credentials('TELEGRAM_BOT_TOKEN')
+        TELEGRAM_CHAT_ID = credentials('TELEGRAM_CHAT_ID')
     }
 
     stages {
@@ -29,6 +31,8 @@ pipeline {
                         -e KEY=$KEY \
                         -e SECRET=$SECRET \
                         -e PAPER=true \
+                        -e TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN \
+                        -e TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID \
                         trading-bot
                 '''
             }
