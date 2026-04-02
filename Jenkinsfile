@@ -26,12 +26,13 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -e KEY=$ALPACA_API_KEY_PAPER \
-                        -e SECRET=$ALPACA_SECRET_KEY_PAPER \
+                        -e KEY=$KEY \
+                        -e SECRET=$SECRET \
                         -e PAPER=true \
                         trading-bot
                 '''
             }
+
         }
     }
 
