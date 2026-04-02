@@ -71,7 +71,7 @@ print(f"Strategien:")
 for cfg in STRATEGIES:
     print(f"  • {cfg.SYMBOL}: {cfg.LEVERAGE}x Hebel | Stop-Loss: {cfg.STOP_LOSS*100:.0f}% | "
           f"Buy: -{cfg.BUY_DEVIATION*100:.0f}% | Sell: +{cfg.SELL_DEVIATION*100:.0f}%")
-print(f"Modus: {'PAPER' if STRATEGIES[0].PAPER else 'LIVE'}")
+print(f"Modus: {'PAPER' if IS_PAPER else 'LIVE'}")
 
 # Direkt ausführen — Scheduling läuft über Jenkins Pipeline
 job()
