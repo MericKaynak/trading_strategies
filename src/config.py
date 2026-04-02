@@ -5,7 +5,6 @@ class AMDConfig(BaseModel):
     """Konfiguration für AMD."""
     API_KEY: str
     API_SECRET: str
-    PAPER: bool = True
     SYMBOL: str = "AMD"
     LEVERAGE: float = 3.0
     REG_WINDOW: int = 100
@@ -19,7 +18,6 @@ class MUConfig(BaseModel):
     """Konfiguration für MU."""
     API_KEY: str
     API_SECRET: str
-    PAPER: bool = True
     SYMBOL: str = "MU"
     LEVERAGE: float = 3.0
     REG_WINDOW: int = 100

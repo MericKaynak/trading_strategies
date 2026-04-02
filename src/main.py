@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY = os.getenv("KEY")
 API_SECRET = os.getenv("SECRET")
+IS_PAPER = os.getenv("PAPER")
 
 # ==========================================
 # ALLE STRATEGIEN / SYMBOLE HIER DEFINIEREN
@@ -32,7 +33,7 @@ def job():
     print(f"{'='*50}")
 
     try:
-        client = TradingClient(API_KEY, API_SECRET, paper=STRATEGIES[0].PAPER)
+        client = TradingClient(API_KEY, API_SECRET, paper=IS_PAPER)
         account = client.get_account()
         equity = float(account.equity)
         buying_power = float(account.buying_power)

@@ -9,10 +9,9 @@ pipeline {
     }
 
     environment {
-        // In Jenkins anlegen: Manage Jenkins → Credentials → Add Credentials
-        // Kind: "Secret text", ID: "ALPACA_API_KEY" / "ALPACA_API_SECRET"
-        KEY      = credentials('ALPACA_API_KEY')
-        SECRET   = credentials('ALPACA_API_SECRET')
+
+        ALPACA_API_KEY_PAPER      = credentials('ALPACA_API_KEY_PAPER')
+        ALPACA_API_SECRET_PAPER   = credentials('ALPACA_API_SECRET_PAPER')
     }
 
     stages {
@@ -26,8 +25,9 @@ pipeline {
             steps {
                 sh '''
                     docker compose run --rm \
-                        -e KEY=$KEY \
-                        -e SECRET=$SECRET \
+                        -e KEY=$ALPACA_API_KEY_PAPER \
+                        -e SECRET=$ALPACA_API_SECRET_PAPER \
+                        -e PAPER=true \
                         trading-bot \
                         python -m src.main
                 '''
