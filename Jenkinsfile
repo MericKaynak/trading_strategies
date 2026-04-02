@@ -13,19 +13,24 @@ pipeline {
         // Kind: "Secret text", ID: "ALPACA_API_KEY_PAPER" / "ALPACA_API_SECRET_PAPER"
         KEY    = credentials('ALPACA_API_KEY_PAPER')
         SECRET = credentials('ALPACA_API_SECRET_PAPER')
-        PAPER  = 'true'
     }
 
     stages {
-        stage('Dependencies installieren') {
+        stage('Build') {
             steps {
-                sh 'uv sync --frozen --no-dev'
+                sh 'docker build -t trading-bot .'
             }
         }
 
         stage('Trading Bot ausführen') {
             steps {
-                sh 'uv run python -m src.main'
+                sh '''
+                    docker run --rm \
+                        -e KEY=$ALPACA_API_KEY_PAPER \
+                        -e SECRET=$ALPACA_SECRET_KEY_PAPER \
+                        -e PAPER=true \
+                        trading-bot
+                '''
             }
         }
     }
