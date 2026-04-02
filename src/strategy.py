@@ -3,8 +3,8 @@ import pandas as pd
 import yfinance as yf
 from datetime import datetime
 from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import MarketOrderRequest, GetOrdersRequest
-from alpaca.trading.enums import OrderSide, TimeInForce, QueryOrderStatus
+from alpaca.trading.requests import MarketOrderRequest, GetOrdersRequest, StopLossRequest
+from alpaca.trading.enums import OrderSide, TimeInForce, QueryOrderStatus, OrderClass
 
 
 def rolling_linreg(series, window):
@@ -99,12 +99,89 @@ def run_strategy(client, config, positions, equity, buying_power):
         qty = int(safe_val / last_price)
 
         if qty > 0:
-            client.submit_order(MarketOrderRequest(
+            order_kwargs = dict(
                 symbol=symbol, qty=qty, side=OrderSide.BUY, time_in_force=TimeInForce.DAY
-            ))
+            )
+            if config.STOP_LOSS_ACTIVE:
+                stop_price = round(last_price * (1 - config.STOP_LOSS), 2)
+                order_kwargs["order_class"] = OrderClass.OTO
+                order_kwargs["stop_loss"] = StopLossRequest(stop_price=stop_price)
+                print(f"  [{symbol}] Stop-Loss gesetzt bei ${stop_price:.2f} ({config.STOP_LOSS*100:.0f}%)")
+            client.submit_order(MarketOrderRequest(**order_kwargs))
             print(f"  ✅ KAUF: {qty} {symbol} @ ~${last_price:.2f} ({config.LEVERAGE}x Hebel)")
             return "bought"
         else:
             print(f"  ❌ {symbol}: Nicht genug Kaufkraft.")
+
+    return "none"
+
+
+def check_and_sell(client, config, positions):
+    """
+    Phase 1: Nur Verkaufs-Check (Stop-Loss + Signal-Verkauf).
+    Gibt 'stop', 'sold', 'skip' oder 'none' zurück.
+    """
+    symbol = config.SYMBOL
+
+    if check_stop_loss(client, config, positions):
+        return "stop"
+
+    order_filter = GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[symbol])
+    if len(client.get_orders(filter=order_filter)) > 0:
+        print(f"  [{symbol}] Offene Order → überspringe Verkauf.")
+        return "skip"
+
+    holding_qty = sum(float(p.qty) for p in positions if p.symbol == symbol)
+    if holding_qty == 0:
+        return "none"
+
+    last_price, last_reg, lower_band, upper_band = analyze_symbol(config)
+    print(f"  [{symbol}] Preis: ${last_price:.2f} | Verkauf > ${upper_band:.2f} | Halte: {holding_qty}")
+
+    if last_price > upper_band:
+        client.submit_order(MarketOrderRequest(
+            symbol=symbol, qty=holding_qty, side=OrderSide.SELL, time_in_force=TimeInForce.DAY
+        ))
+        print(f"  ✅ VERKAUF: {holding_qty} {symbol} @ ~${last_price:.2f}")
+        return "sold"
+
+    return "none"
+
+
+def check_and_buy(client, config, positions, budget):
+    """
+    Phase 2: Kauf-Check mit gegebenem Budget (50/50-Split kommt aus main.py).
+    Gibt 'bought', 'skip' oder 'none' zurück.
+    """
+    symbol = config.SYMBOL
+
+    order_filter = GetOrdersRequest(status=QueryOrderStatus.OPEN, symbols=[symbol])
+    if len(client.get_orders(filter=order_filter)) > 0:
+        print(f"  [{symbol}] Offene Order → überspringe Kauf.")
+        return "skip"
+
+    holding_qty = sum(float(p.qty) for p in positions if p.symbol == symbol)
+    if holding_qty > 0:
+        return "none"
+
+    last_price, last_reg, lower_band, upper_band = analyze_symbol(config)
+    print(f"  [{symbol}] Preis: ${last_price:.2f} | Kauf < ${lower_band:.2f} | Budget: ${budget:,.0f}")
+
+    if last_price < lower_band:
+        qty = int(budget / last_price)
+        if qty > 0:
+            order_kwargs = dict(
+                symbol=symbol, qty=qty, side=OrderSide.BUY, time_in_force=TimeInForce.DAY
+            )
+            if config.STOP_LOSS_ACTIVE:
+                stop_price = round(last_price * (1 - config.STOP_LOSS), 2)
+                order_kwargs["order_class"] = OrderClass.OTO
+                order_kwargs["stop_loss"] = StopLossRequest(stop_price=stop_price)
+                print(f"  [{symbol}] Stop-Loss: ${stop_price:.2f} ({config.STOP_LOSS*100:.0f}%)")
+            client.submit_order(MarketOrderRequest(**order_kwargs))
+            print(f"  ✅ KAUF: {qty} {symbol} @ ~${last_price:.2f} (Budget: ${budget:,.0f})")
+            return "bought"
+        else:
+            print(f"  ❌ {symbol}: Budget zu gering (${budget:.0f}).")
 
     return "none"
