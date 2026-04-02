@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY = os.getenv("KEY")
 API_SECRET = os.getenv("SECRET")
-IS_PAPER = os.getenv("PAPER")
+IS_PAPER = os.getenv("PAPER", "true").strip().lower() == "true"
 
 # ==========================================
 # ALLE STRATEGIEN / SYMBOLE HIER DEFINIEREN

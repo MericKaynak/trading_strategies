@@ -7,4 +7,4 @@ services:
     env_file:
       - path: .env
         required: false
-    command: python -m src.main
+    command: uv run python -m src.main

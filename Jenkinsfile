@@ -2,51 +2,40 @@ pipeline {
     agent any
 
     triggers {
-        // Mo-Fr um 18:00 CET: Trading Bot ausführen
+        // Mo-Fr um 18:25 CET: Trading Bot ausführen
         cron('25 18 * * 1-5')
         // Bei Push: Neu bauen (Webhook in GitHub konfigurieren)
         pollSCM('')
     }
 
     environment {
-
-        ALPACA_API_KEY_PAPER      = credentials('ALPACA_API_KEY_PAPER')
-        ALPACA_API_SECRET_PAPER   = credentials('ALPACA_API_SECRET_PAPER')
+        // In Jenkins anlegen: Manage Jenkins → Credentials → Add Credentials
+        // Kind: "Secret text", ID: "ALPACA_API_KEY_PAPER" / "ALPACA_API_SECRET_PAPER"
+        KEY    = credentials('ALPACA_API_KEY_PAPER')
+        SECRET = credentials('ALPACA_API_SECRET_PAPER')
+        PAPER  = 'true'
     }
 
     stages {
-        stage('Build') {
+        stage('Dependencies installieren') {
             steps {
-                sh 'docker compose build'
+                sh 'uv sync --frozen --no-dev'
             }
         }
 
-        stage('Run Trading Bot') {
+        stage('Trading Bot ausführen') {
             steps {
-                sh '''
-                    docker compose run --rm \
-                        -e KEY=$ALPACA_API_KEY_PAPER \
-                        -e SECRET=$ALPACA_API_SECRET_PAPER \
-                        -e PAPER=true \
-                        trading-bot \
-                        python -m src.main
-                '''
-            }
-        }
-
-        stage('Cleanup') {
-            steps {
-                sh 'docker compose down || true'
+                sh 'uv run python -m src.main'
             }
         }
     }
 
     post {
         failure {
-            echo '❌ Trading Bot fehlgeschlagen!'
+            echo 'Trading Bot fehlgeschlagen!'
         }
         success {
-            echo '✅ Erfolgreich.'
+            echo 'Erfolgreich.'
         }
     }
 }
