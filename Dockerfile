@@ -36,4 +36,4 @@ ENV PYTHONPATH=/app/src
 
 # App starten. Da wir den Pfad in den ENV gesetzt haben, 
 # führen wir die Datei im src-Ordner direkt aus.
-CMD ["uv", "run", "-m", "src/main.py"]
+CMD ["uv", "run", "-m", "src.main"]
