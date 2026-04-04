@@ -9,7 +9,7 @@ class AMDConfig(BaseModel):
     LEVERAGE: float = 3.0
     REG_WINDOW: int = 100
     BUY_DEVIATION: float = 0.14
-    SELL_DEVIATION: float = 0.14
+    SELL_DEVIATION: float = 0.16
     STOP_LOSS: float = 0.20
     STOP_LOSS_ACTIVE: bool = True
 
