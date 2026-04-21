@@ -3,7 +3,7 @@ pipeline {
 
     triggers {
         // Mo-Fr um 18:25 CET: Trading Bot ausführen
-        cron('25 18 * * 1-5')
+        cron('23 21 * * 1-5')
         // Bei Push: Neu bauen (Webhook in GitHub konfigurieren)
         pollSCM('')
     }
